@@ -1,0 +1,93 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+model User {
+  id                String    @id @default(uuid())
+  clerkId           String    @unique
+  email             String    @unique
+  username          String?
+  firstName         String?
+  lastName          String?
+  imageUrl          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  hostedMeetings    Meeting[] @relation("HostedMeetings")
+  participations    MeetingParticipant[]
+  
+  @@map("users")
+}
+
+model Meeting {
+  id                String    @id @default(uuid())
+  streamCallId      String    @unique // The ID from GetStream.io
+  title             String
+  description       String?
+  scheduledFor      DateTime
+  duration          Int       // in minutes
+  startedAt         DateTime?
+  endedAt           DateTime?
+  status            MeetingStatus @default(SCHEDULED)
+  recordingUrl      String?
+  recordingDuration Int?      // in seconds
+  totalParticipants Int       @default(0)
+  
+  // Host information
+  hostId            String
+  host              User      @relation("HostedMeetings", fields: [hostId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  participants      MeetingParticipant[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([hostId])
+  @@index([scheduledFor])
+  @@index([status])
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id                String    @id @default(uuid())
+  
+  // Meeting and User relations
+  meetingId         String
+  meeting           Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Participation details
+  joinedAt          DateTime  @default(now())
+  leftAt            DateTime?
+  duration          Int?      // in seconds, calculated when user leaves
+  isMicMuted        Boolean   @default(false)
+  isCameraOff       Boolean   @default(false)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_participants")
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
