@@ -1,15 +1,12 @@
-
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  
 }
-
-
 
 model User {
   id                String    @id @default(uuid())
@@ -35,11 +32,17 @@ model Meeting {
   title             String
   description       String?
   scheduledFor      DateTime
-  duration          Int       // in minutes
+  duration          Int       // Scheduled duration in minutes
+  
+  // ✅ NEW FIELDS
+  actualDuration    Int?      // Actual meeting duration in minutes (from GetStream)
+  
   startedAt         DateTime?
   endedAt           DateTime?
   status            MeetingStatus @default(SCHEDULED)
-  recordingUrl      String?
+  
+  // ✅ UPDATED: Changed from recordingUrl to recordingUrls (array)
+  recordingUrls     String[]  @default([]) // Multiple recording URLs from GetStream
   recordingDuration Int?      // in seconds
   totalParticipants Int       @default(0)
   
@@ -56,6 +59,7 @@ model Meeting {
   @@index([hostId])
   @@index([scheduledFor])
   @@index([status])
+  @@index([streamCallId])
   @@map("meetings")
 }
 

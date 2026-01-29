@@ -16,3 +16,6 @@ const prisma = globalForPrisma.prisma || new PrismaClient({
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export default prisma
+
+export { MeetingStatus, Prisma } from '../app/generated/prisma/client'
+export type { User, Meeting, MeetingParticipant } from '../app/generated/prisma/client'
