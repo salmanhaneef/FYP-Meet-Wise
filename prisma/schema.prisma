@@ -51,6 +51,7 @@ model Meeting {
   host              User      @relation("HostedMeetings", fields: [hostId], references: [id], onDelete: Cascade)
   
   // Relations
+   invitations       Invitation[]
   participants      MeetingParticipant[]
   
   createdAt         DateTime  @default(now())
@@ -61,6 +62,37 @@ model Meeting {
   @@index([status])
   @@index([streamCallId])
   @@map("meetings")
+}
+
+// NEW: Invitation model
+model Invitation {
+  id                String    @id @default(uuid())
+  
+  meetingId         String
+  meeting           Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  email             String
+  name              String?
+  status            InvitationStatus @default(PENDING)
+  
+  sentAt            DateTime  @default(now())
+  acceptedAt        DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([meetingId, email])
+  @@index([meetingId])
+  @@index([email])
+  @@map("invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT      // Email successfully sent ✅ ADD THIS
+  FAILED    // Email sending failed ✅ ADD THIS
+  ACCEPTED
+  DECLINED
 }
 
 model MeetingParticipant {
