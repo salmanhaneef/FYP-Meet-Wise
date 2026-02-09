@@ -8,12 +8,14 @@ interface NavbarProps {
   onMenuClick: () => void;
   onCreateMeeting: () => void;
   onInviteParticipant: () => void;
+  hasSelectedMeeting?: boolean; // 🆕 New prop to show if a meeting is selected
 }
 
 export default function Navbar({ 
   onMenuClick, 
   onCreateMeeting, 
-  onInviteParticipant 
+  onInviteParticipant,
+  hasSelectedMeeting = false, // 🆕 Default to false
 }: NavbarProps) {
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -74,10 +76,16 @@ export default function Navbar({
             <span className="sm:hidden">Create</span>
           </button>
 
-          {/* Invite Participant Button */}
+          {/* Invite Participant Button - 🆕 Disabled if no meeting selected */}
           <button
             onClick={onInviteParticipant}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 lg:px-4 rounded-lg transition-colors duration-200 text-sm font-medium"
+            disabled={!hasSelectedMeeting}
+            title={!hasSelectedMeeting ? "Select a meeting first" : "Invite participants"}
+            className={`flex items-center gap-2 px-3 py-2 lg:px-4 rounded-lg transition-colors duration-200 text-sm font-medium ${
+              hasSelectedMeeting
+                ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Invite</span>

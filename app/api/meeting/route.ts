@@ -184,13 +184,14 @@ export async function POST(req: NextRequest) {
         starts_at: scheduledDate,
         custom: {
           title,
-          description,
+          description: description || "",
           duration,
           hostId: user.id,
           hostName:
             ("username" in user && user.username) ||
             ("firstName" in user && user.firstName) ||
             "User",
+          status: MeetingStatus.SCHEDULED,
         },
       },
     });
@@ -377,40 +378,62 @@ export async function PATCH(req: NextRequest) {
 
     console.log("📝 [PATCH] Fields to update:", Object.keys(updateData));
 
-    // Update Stream call if needed
-    if (apiKey && apiSecret && (scheduledFor || title || description || duration)) {
+    // Update Stream call FIRST to ensure consistency
+    if (apiKey && apiSecret) {
       console.log("📞 [PATCH] Updating Stream call...");
       
       try {
         const client = new StreamClient(apiKey, apiSecret);
         const call = client.video.call("default", meeting.streamCallId);
 
+        // Fetch current call data to preserve existing custom fields
+        console.log("🔍 [PATCH] Fetching current Stream call data...");
+        const callResponse = await call.get();
+        const currentCustomData = callResponse.call.custom || {};
+
+        console.log("📦 [PATCH] Current custom data:", currentCustomData);
+
+        // Build Stream update data
         const streamUpdateData: {
           starts_at?: Date;
           custom?: Record<string, unknown>;
         } = {};
 
+        // Update starts_at if scheduledFor is provided
         if (updateData.scheduledFor) {
           streamUpdateData.starts_at = updateData.scheduledFor;
+          console.log("📅 [PATCH] Updating starts_at:", streamUpdateData.starts_at);
         }
 
-        if (title || description || duration) {
-          streamUpdateData.custom = {
-            ...(title !== undefined && { title }),
-            ...(description !== undefined && { description }),
-            ...(duration !== undefined && { duration }),
-          };
-        }
+        // Merge custom fields - preserve existing data and update only what's changed
+        streamUpdateData.custom = {
+          ...currentCustomData,
+          ...(title !== undefined && { title }),
+          ...(description !== undefined && { description }),
+          ...(duration !== undefined && { duration }),
+        };
 
+        console.log("📦 [PATCH] Updated custom data:", streamUpdateData.custom);
+
+        // Perform the update
         await call.update(streamUpdateData);
         console.log("✅ [PATCH] Stream call updated successfully");
       } catch (streamError) {
-        console.error("⚠️  [PATCH] Failed to update Stream call:", streamError);
-        console.log("   - Continuing with database update anyway...");
+        console.error("❌ [PATCH] Failed to update Stream call:", streamError);
+        console.error("   - Error details:", streamError instanceof Error ? streamError.message : streamError);
+        
+        // CRITICAL: If Stream update fails, don't update database
+        // This ensures data consistency between Stream and database
+        return NextResponse.json(
+          { error: "Failed to sync with video provider. Please try again." },
+          { status: 500 }
+        );
       }
+    } else {
+      console.log("⚠️  [PATCH] Stream credentials not available, skipping Stream update");
     }
 
-    // Update database
+    // Update database AFTER Stream update succeeds
     console.log("💾 [PATCH] Updating database...");
     const updatedMeeting = await prisma.meeting.update({
       where: { id: meetingId },
@@ -545,24 +568,54 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // End Stream call if it's ongoing
-    if (apiKey && apiSecret && meeting.status === MeetingStatus.ONGOING) {
-      console.log("📞 [DELETE] Ending ongoing Stream call...");
+    // Update Stream call FIRST to ensure consistency
+    if (apiKey && apiSecret) {
+      console.log("📞 [DELETE] Updating Stream call...");
       
       try {
         const client = new StreamClient(apiKey, apiSecret);
         const call = client.video.call("default", meeting.streamCallId);
         
-        await call.end();
-        console.log("✅ [DELETE] Stream call ended successfully");
+        // Fetch current call data
+        console.log("🔍 [DELETE] Fetching current Stream call data...");
+        const callResponse = await call.get();
+        const currentCustomData = callResponse.call.custom || {};
+
+        // If meeting is ongoing, end the call first
+        if (meeting.status === MeetingStatus.ONGOING) {
+          console.log("🛑 [DELETE] Ending ongoing call...");
+          await call.end();
+          console.log("✅ [DELETE] Call ended successfully");
+        }
+
+        // Update custom data to mark as cancelled
+        console.log("📦 [DELETE] Marking call as cancelled in Stream...");
+        await call.update({
+          custom: {
+            ...currentCustomData,
+            status: MeetingStatus.CANCELLED,
+            cancelledAt: new Date(),
+          }
+        });
+
+        console.log("✅ [DELETE] Stream call updated successfully");
       } catch (streamError) {
-        console.error("⚠️  [DELETE] Failed to end Stream call:", streamError);
-        console.log("   - Continuing with cancellation anyway...");
+        console.error("❌ [DELETE] Failed to update Stream call:", streamError);
+        console.error("   - Error details:", streamError instanceof Error ? streamError.message : streamError);
+        
+        // CRITICAL: If Stream update fails, don't update database
+        // This ensures data consistency
+        return NextResponse.json(
+          { error: "Failed to sync with video provider. Please try again." },
+          { status: 500 }
+        );
       }
+    } else {
+      console.log("⚠️  [DELETE] Stream credentials not available, skipping Stream update");
     }
 
-    // Update meeting status to CANCELLED (soft delete)
-    console.log("💾 [DELETE] Marking meeting as CANCELLED...");
+    // Update meeting status to CANCELLED in database AFTER Stream update succeeds
+    console.log("💾 [DELETE] Marking meeting as CANCELLED in database...");
     const cancelledMeeting = await prisma.meeting.update({
       where: { id: meetingId },
       data: {
