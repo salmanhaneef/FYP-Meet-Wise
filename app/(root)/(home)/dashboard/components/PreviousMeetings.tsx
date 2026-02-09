@@ -85,7 +85,7 @@ export default function PreviousMeetingsPage() {
   };
 
   const handleViewDetails = (callId: string) => {
-    router.push(`/meeting-details/${callId}`);
+    router.push(`/meeting-info/${callId}`);
   };
 
   const getStatusColor = (status: string) => {
