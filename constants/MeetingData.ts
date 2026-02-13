@@ -1,35 +1,58 @@
+import { TranscriptSegment, ActionItem, Recording } from '@/Types/meeting.types';
+
 /**
- * Meeting Data Constants
- * 
- * This file contains mock data for transcripts, summaries, and action items.
- * Replace these with actual API data when backend integration is ready.
- * 
- * To use real data:
- * 1. Update your API route to return transcript, summary, and actionItems
- * 2. Remove the imports from this file in your component
- * 3. Use the data directly from the API response
+ * Mock Meeting Data Constants
+ * Replace these with actual API data when backend is ready
  */
+
+/* -------------------------------------------------------------------------- */
+/*                         MOCK RECORDINGS (HARDCODED)                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Example audio/video files for testing
+ * Place these files in your public/media folder
+ * Or use external URLs for testing
+ */
+export const MOCK_RECORDINGS: Recording[] = [
+  {
+    url: '/media/meeting-recording.mp4', // Replace with actual file
+    type: 'video',
+    duration: 3480, // 58 minutes in seconds
+    filename: 'quarterly-review-2024-03-11.mp4',
+    size: 524288000, // 500 MB in bytes
+  },
+  {
+    url: '/media/meeting-audio.mp3', // Replace with actual file
+    type: 'audio',
+    duration: 3480,
+    filename: 'quarterly-review-audio.mp3',
+    size: 52428800, // 50 MB in bytes
+  },
+];
+
+/**
+ * Alternative: Use external URLs for testing
+ */
+export const MOCK_RECORDINGS_EXTERNAL: Recording[] = [
+  {
+    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    type: 'video',
+    duration: 596, // 9:56
+    filename: 'sample-video.mp4',
+  },
+  {
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    type: 'audio',
+    duration: 348, // 5:48
+    filename: 'sample-audio.mp3',
+  },
+];
 
 /* -------------------------------------------------------------------------- */
 /*                            TRANSCRIPT DATA                                 */
 /* -------------------------------------------------------------------------- */
 
-export interface TranscriptWord {
-  word: string;
-  start: number;
-  end: number;
-}
-
-export interface TranscriptSegment {
-  speaker: string;
-  offset: number;
-  words: TranscriptWord[];
-}
-
-/**
- * Mock transcript data with speaker diarization
- * Generated from speech-to-text service (e.g., AssemblyAI, Deepgram)
- */
 export const MOCK_TRANSCRIPT: TranscriptSegment[] = [
   {
     speaker: "Rachel",
@@ -150,29 +173,12 @@ export const MOCK_TRANSCRIPT: TranscriptSegment[] = [
 /*                              SUMMARY DATA                                  */
 /* -------------------------------------------------------------------------- */
 
-/**
- * AI-generated meeting summary
- * Generated using GPT-4, Claude, or similar LLM
- */
 export const MOCK_SUMMARY = "Rachel and Gowreesh discussed quarterly performance achievements, focusing on product roadmap planning and hiring initiatives discussed with Lizzy. The team dynamics have been strong, and both parties expressed excitement about the direction the team is heading. The conversation covered specific metrics and feedback from the team, highlighting successful collaboration and positive momentum for the upcoming quarter.";
 
 /* -------------------------------------------------------------------------- */
 /*                            ACTION ITEMS DATA                               */
 /* -------------------------------------------------------------------------- */
 
-export interface ActionItem {
-  id: number;
-  text: string;
-  assignedTo?: string;
-  dueDate?: string;
-  status?: 'pending' | 'in_progress' | 'completed';
-  priority?: 'low' | 'medium' | 'high';
-}
-
-/**
- * Action items extracted from the meeting
- * Can be manually created or AI-extracted
- */
 export const MOCK_ACTION_ITEMS: ActionItem[] = [
   {
     id: 1,
@@ -216,132 +222,33 @@ export const MOCK_ACTION_ITEMS: ActionItem[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
-/*                          ALTERNATIVE DATA SETS                             */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Additional mock data for different meeting scenarios
- * Uncomment and use as needed for testing
- */
-
-// Pricing Strategy Meeting
-export const PRICING_MEETING_SUMMARY = "Arjun and Jake discussed the need to restructure the pricing strategy for DataFlow Pro, considering a tiered model with three plans and a potential fifteen percent price increase. They also addressed the free trial period, grandfathering existing customers, and offering annual discounts to improve cash flow, aiming for a target annual revenue of $2.3 million by Q2 2024.";
-
-export const PRICING_ACTION_ITEMS: ActionItem[] = [
-  {
-    id: 1,
-    text: "Jake to work on the detailed pricing model and customer communication strategy.",
-    assignedTo: "Jake",
-    dueDate: "2024-03-10",
-    status: 'in_progress',
-    priority: 'high'
-  },
-  {
-    id: 2,
-    text: "Schedule a follow-up meeting in two weeks to review detailed proposals and finalize implementation timeline.",
-    assignedTo: "Arjun",
-    dueDate: "2024-03-08",
-    status: 'pending',
-    priority: 'high'
-  },
-  {
-    id: 3,
-    text: "Prepare a summary report of the meeting outcomes and share it with all stakeholders.",
-    assignedTo: "Jake",
-    dueDate: "2024-03-05",
-    status: 'pending',
-    priority: 'medium'
-  },
-  {
-    id: 4,
-    text: "Research potential vendors for the new software solution and compile a comparison chart.",
-    assignedTo: "Arjun",
-    dueDate: "2024-03-15",
-    status: 'pending',
-    priority: 'low'
-  }
-];
-
-/* -------------------------------------------------------------------------- */
 /*                          HELPER FUNCTIONS                                  */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Get the full text from a transcript segment
- */
 export const getTranscriptText = (segment: TranscriptSegment): string => {
   return segment.words.map(w => w.word).join(' ');
 };
 
-/**
- * Format timestamp from seconds to MM:SS
- */
 export const formatTimestamp = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-/**
- * Get all unique speakers from transcript
- */
-export const getUniqueSpeakers = (transcript: TranscriptSegment[]): string[] => {
-  return Array.from(new Set(transcript.map(segment => segment.speaker)));
-};
-
-/**
- * Get total transcript duration
- */
-export const getTotalDuration = (transcript: TranscriptSegment[]): number => {
-  if (transcript.length === 0) return 0;
-  const lastSegment = transcript[transcript.length - 1];
-  const lastWord = lastSegment.words[lastSegment.words.length - 1];
-  return lastWord?.end || 0;
-};
-
-/**
- * Search transcript for a keyword
- */
-export const searchTranscript = (
-  transcript: TranscriptSegment[],
-  query: string
-): TranscriptSegment[] => {
-  if (!query) return transcript;
+export const formatDuration = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
   
-  const lowerQuery = query.toLowerCase();
-  return transcript.filter(segment =>
-    getTranscriptText(segment).toLowerCase().includes(lowerQuery) ||
-    segment.speaker.toLowerCase().includes(lowerQuery)
-  );
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  }
+  return `${minutes}m ${secs}s`;
 };
 
-/**
- * Get action items by status
- */
-export const getActionItemsByStatus = (
-  items: ActionItem[],
-  status: 'pending' | 'in_progress' | 'completed'
-): ActionItem[] => {
-  return items.filter(item => item.status === status);
-};
-
-/**
- * Get action items by priority
- */
-export const getActionItemsByPriority = (
-  items: ActionItem[],
-  priority: 'low' | 'medium' | 'high'
-): ActionItem[] => {
-  return items.filter(item => item.priority === priority);
-};
-
-/**
- * Get overdue action items
- */
-export const getOverdueActionItems = (items: ActionItem[]): ActionItem[] => {
-  const today = new Date();
-  return items.filter(item => {
-    if (!item.dueDate || item.status === 'completed') return false;
-    return new Date(item.dueDate) < today;
-  });
+export const formatFileSize = (bytes: number): string => {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return '0 Bytes';
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 };
